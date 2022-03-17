@@ -15,7 +15,8 @@ test_vineclust(
   cop2,
   mix,
   iter = 100,
-  maxit = 10
+  maxit = 10,
+  tol = 0.01
 )
 }
 \arguments{
@@ -40,6 +41,8 @@ test_vineclust(
 \item{iter}{iterations of ECM}
 
 \item{maxit}{iterations for each CM step}
+
+\item{tol}{tolerance for stopping by log likelihood}
 }
 \value{
 model

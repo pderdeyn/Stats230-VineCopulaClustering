@@ -83,13 +83,14 @@ vcmm2_margins <- function(pars,x,gam,p,r,M,fam,cop) {
 #' @param mix mixing parameters for components
 #' @param iter iterations of ECM
 #' @param maxit iterations for each CM step
+#' @param tol tolerance for stopping by log likelihood
 #' @return model
 #' @export
 test_vineclust <- function(x,margin_pars,M1,M2,F1,F2,cop1,cop2,mix,
-                           iter=100,maxit=10) {
+                           iter=100,maxit=10,tol=0.01) {
   gam1<-margin_pars[,,1]
   gam2<-margin_pars[,,2]
-
+  lls<-numeric(iter)
 
 
   n<-dim(x)[1]
@@ -122,8 +123,20 @@ test_vineclust <- function(x,margin_pars,M1,M2,F1,F2,cop1,cop2,mix,
     margin_density2 <- m1 * m2 * m3
 
     denom <- mix[1]*margin_density1*rvine_density1+mix[2]*margin_density2*rvine_density2
-    r[,1]<-mix[1]*margin_density1*rvine_density1/denom
-    r[,2]<-mix[2]*margin_density2*rvine_density2/denom
+    r[,1]<-mix[1]*margin_density1*rvine_density1
+    r[,2]<-mix[2]*margin_density2*rvine_density2
+
+    ls<-r[,1]+r[,2]
+    lls[t]<-sum(log(ls))
+    if (t>1) {
+      if (lls[t]-lls[t-1] < tol) {
+        break
+      }
+    }
+
+
+    r[,1]<-r[,1]/denom
+    r[,2]<-r[,2]/denom
 
     mix[1]<-sum(r[,1])/n
     mix[2]<-sum(r[,2])/n
@@ -216,5 +229,6 @@ test_vineclust <- function(x,margin_pars,M1,M2,F1,F2,cop1,cop2,mix,
     cop2<-seq_RVM$par
 
   }
+  return(list(lls[1:t],gam1,gam2,cop1,cop2,mix))
 }
 

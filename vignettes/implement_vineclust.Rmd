@@ -12,6 +12,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r install}
 remotes::install_github("oezgesahin/vineclust")
 library(vineclust)
+
+install.packages("../",repos=NULL,type="source")
+#devtools::install_github('https://github.com/pderdeyn/Stats230pieter')
+library(Stats230VineCopulaClustering)
 ```
 
 Simulate data
@@ -48,13 +52,37 @@ margin_pars[,2,2] <- c(1, 2, 7, 1.5)
 margin_pars[,3,1] <- c(0, 1, 0, 0)
 margin_pars[,3,2] <- c(0.5, 0.5, 2.5, 0)
 x_data <- rvcmm(dims, obs, margin, margin_pars, RVMs)
+```
+
+
+```{r plot_sim}
 plot(x_data[,1:3])
+hist(x_data[,1],breaks=20)
+hist(x_data[,2],breaks=20)
+hist(x_data[,3],breaks=20)
 ```
 
 ```{r initial_clustering}
-library(Stats230VineCopulaClustering)
 mix<-c(0.5,0.5)
-test_vineclust(x_data, margin_pars, M1, M2, F1, F2, cop1, cop2, mix)
-
+vcmm_result<-test_vineclust(x_data, margin_pars, M1, M2, F1, F2, cop1, cop2, mix)
 
 ```
+```{r perturb_params}
+noise <- array(runif(prod(dim(margin_pars)),0.8,1.3),dim(margin_pars))
+margin_parsp <- noise * margin_pars
+
+noise <- array(runif(prod(dim(cop1)),0.8,1.3),dim(cop1))
+cop1p <- noise * cop1
+
+noise <- array(runif(prod(dim(cop2)),0.8,1.3),dim(cop2))
+cop2p <- noise * cop2
+
+noise <- runif(length(mix),0.8,1.3)
+mixp <- noise * mix
+```
+
+```{r test_on_perturbed}
+vcmm_result<-test_vineclust(x_data, margin_parsp, M1, M2, F1, F2, cop1p, cop2p, mixp)
+
+```
+
