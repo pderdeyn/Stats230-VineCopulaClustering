@@ -42,47 +42,89 @@ RVMs[[2]] <- VineCopula::RVineMatrix(Matrix=M2,
                         family=F2,
                         par=cop2,
                         par2=matrix(sample(0, dims*dims, replace=TRUE),dims,dims))
-margin <- matrix(c('Skew Student-t', 'Normal', 'Logistic', 'Normal', 'Skew Student-t', 'Logistic'), 3, 2) 
+margin <- matrix(c('Skew Student-t', 'Normal', 'Logistic', 'Skew Student-t', 'Normal', 'Logistic'), 3, 2) 
 
 margin_pars <- array(0, dim=c(4, 3, 2))
 margin_pars[,1,1] <- c(1, 2, 7, 1.5)
-margin_pars[,1,2] <- c(1.5, 0.4, 0, 0)
+margin_pars[,2,2] <- c(1.5, 0.4, 0, 0)
 margin_pars[,2,1] <- c(1, 0.2, 0, 0)
-margin_pars[,2,2] <- c(1, 2, 7, 1.5)
+margin_pars[,1,2] <- c(2, 2, 9, 1)
 margin_pars[,3,1] <- c(0, 1, 0, 0)
 margin_pars[,3,2] <- c(0.5, 0.5, 2.5, 0)
 x_data <- rvcmm(dims, obs, margin, margin_pars, RVMs)
 ```
 
 
-```{r plot_sim}
-plot(x_data[,1:3])
-hist(x_data[,1],breaks=20)
-hist(x_data[,2],breaks=20)
-hist(x_data[,3],breaks=20)
+```{r ggally}
+library(GGally)
+cols <- character(nrow(x_data))
+cols[1:obs[1]] <- "vine 1"
+cols[(obs[1]+1):(obs[1]+obs[2])] <- "vine 2"
+ggpairs(x_data,columns=1:3, aes(color = cols,alpha=0.35),upper="blank")
 ```
 
 ```{r initial_clustering}
 mix<-c(0.5,0.5)
-vcmm_result<-test_vineclust(x_data, margin_pars, M1, M2, F1, F2, cop1, cop2, mix)
-
+vcmm_result<-test_vineclust(x_data, margin_pars, M1, M2, F1, F2, cop1, cop2, mix, iter=5)
 ```
+
+
+
 ```{r perturb_params}
-noise <- array(runif(prod(dim(margin_pars)),0.8,1.3),dim(margin_pars))
+library(KScorrect)
+lower<-0.5
+upper<-2
+noise <- array(rlunif(prod(dim(margin_pars)),lower,upper),dim(margin_pars))
 margin_parsp <- noise * margin_pars
 
-noise <- array(runif(prod(dim(cop1)),0.8,1.3),dim(cop1))
+noise <- array(rlunif(prod(dim(cop1)),lower,upper),dim(cop1))
 cop1p <- noise * cop1
 
-noise <- array(runif(prod(dim(cop2)),0.8,1.3),dim(cop2))
+noise <- array(rlunif(prod(dim(cop2)),lower,upper),dim(cop2))
 cop2p <- noise * cop2
 
-noise <- runif(length(mix),0.8,1.3)
+noise <- rlunif(length(mix),lower,upper)
 mixp <- noise * mix
 ```
 
 ```{r test_on_perturbed}
-vcmm_result<-test_vineclust(x_data, margin_parsp, M1, M2, F1, F2, cop1p, cop2p, mixp)
+vcmm_result<-test_vineclust(x_data, margin_parsp, M1, M2, F1, F2, cop1p, cop2p, mixp,iter=5)
 
 ```
 
+
+```{r get_labels}
+r_perturbed <- fit_points_to_vcmm(x_data,margin_parsp,M1,M2,F1,F2,cop1p,cop2p,mixp)
+```
+
+```{r probs_to_label}
+labels_p <- apply(r_perturbed,1,which.max)
+labels_p <- paste(labels_p)
+ggpairs(x_data,columns=1:3, aes(color = labels_p,alpha=0.35),upper="blank")
+
+```
+
+
+```{r plot_perturb_results}
+plot(vcmm_result[[1]],ylab="log likelihood")
+
+gam1fit<-vcmm_result[[2]]
+gam2fit<-vcmm_result[[3]]
+margin_parsfit<-array(c(gam1fit,gam2fit),dim(margin_pars))
+cop1fit<-vcmm_result[[4]]
+cop2fit<-vcmm_result[[5]]
+mixfit<-vcmm_result[[6]]
+```
+```{r get_labels}
+r_fit <- fit_points_to_vcmm(x_data,margin_parsfit,M1,M2,F1,F2,cop1fit,cop2fit,mixfit)
+```
+
+```{r probs_to_label}
+labels_p <- apply(r_fit,1,which.max)
+labels_p <- paste(labels_p)
+ggpairs(x_data,columns=1:3, aes(color = labels_p,alpha=0.35),upper="blank")
+
+```
+
+
+```
